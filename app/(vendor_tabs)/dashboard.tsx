@@ -43,7 +43,7 @@ export default function VendorDashboard() {
 
       setStats({
         totalSales,
-        totalOrders: uniqueOrderIds.size,
+        totalOrders: uniqueOrderIds.length,
         pendingOrders: new Set(castData.filter(item => item.orders.status === 'pending').map(item => item.orders.id)).size,
       });
 
