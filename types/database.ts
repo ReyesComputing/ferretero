@@ -29,6 +29,7 @@ export interface Product {
   unit_measure: string;
   category: 'estructura' | 'acabados' | 'cubiertas' | 'hidrosanitarios' | 'electricos' | 'geotextiles' | 'drenes' | 'otros';
   image_url?: string;
+  is_active: boolean;
   created_at: string;
 }
 
@@ -62,7 +63,10 @@ export interface Order {
   id: string;
   buyer_id: string;
   total_amount: number;
-  status: 'pending' | 'paid' | 'shipped';
+  status: 'pending' | 'paid' | 'shipped' | 'delivered';
+  payment_evidence_url?: string;
+  delivery_evidence_url?: string;
+  delivery_notes?: string;
   created_at: string;
 }
 

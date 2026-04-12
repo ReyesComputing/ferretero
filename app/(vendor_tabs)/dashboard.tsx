@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
-import { TrendingUp, ShoppingBag, Clock, DollarSign, LogOut } from 'lucide-react-native';
+import { TrendingUp, ShoppingBag, Clock, DollarSign, LogOut, ExternalLink, CheckCircle2, Truck } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { Linking, TextInput } from 'react-native';
 
 export default function VendorDashboard() {
   const { profile, signOut } = useAuthStore();
@@ -15,6 +16,7 @@ export default function VendorDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState<{ [key: string]: { url: string; notes: string } }>({});
   const router = useRouter();
 
   const fetchStats = async () => {
@@ -101,6 +103,32 @@ export default function VendorDashboard() {
     }
   };
 
+  const handleMarkAsDelivered = async (orderId: string) => {
+    const info = deliveryInfo[orderId] || { url: '', notes: '' };
+
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        status: 'delivered',
+        delivery_evidence_url: info.url,
+        delivery_notes: info.notes
+      })
+      .eq('id', orderId);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Éxito', 'Pedido marcado como entregado');
+      fetchStats();
+    }
+  };
+
+  const openEvidence = (url: string) => {
+    if (url) {
+      Linking.openURL(url).catch(() => Alert.alert('Error', 'No se pudo abrir la URL'));
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
@@ -172,12 +200,49 @@ export default function VendorDashboard() {
                 <Text className="text-gray-600 text-sm mb-1">{order.profiles?.name}</Text>
                 <Text className="text-gray-400 text-xs mb-3">{new Date(order.created_at).toLocaleDateString()}</Text>
 
-                {order.dispatch_date ? (
-                  <View className="bg-blue-50 p-2 rounded-lg flex-row items-center">
-                    <Clock size={14} color="#2563eb" />
-                    <Text className="text-blue-600 text-xs font-bold ml-2">
-                      Despacho: {new Date(order.dispatch_date).toLocaleDateString()}
-                    </Text>
+                {order.payment_evidence_url && (
+                  <TouchableOpacity
+                    onPress={() => openEvidence(order.payment_evidence_url)}
+                    className="mb-2 flex-row items-center"
+                  >
+                    <ExternalLink size={14} color="#2563eb" />
+                    <Text className="text-blue-600 text-xs ml-1 underline">Ver comprobante de pago</Text>
+                  </TouchableOpacity>
+                )}
+
+                {order.status === 'delivered' ? (
+                  <View className="bg-green-50 p-2 rounded-lg flex-row items-center">
+                    <CheckCircle2 size={14} color="#10b981" />
+                    <Text className="text-green-600 text-xs font-bold ml-2">Entregado</Text>
+                  </View>
+                ) : order.status === 'shipped' ? (
+                  <View className="space-y-2">
+                    <View className="bg-blue-50 p-2 rounded-lg flex-row items-center">
+                      <Truck size={14} color="#2563eb" />
+                      <Text className="text-blue-600 text-xs font-bold ml-2">En camino</Text>
+                    </View>
+
+                    <View className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                      <Text className="text-[10px] font-bold text-gray-400 uppercase mb-1">Evidencia de Entrega</Text>
+                      <TextInput
+                        className="text-xs bg-white p-2 rounded border border-gray-200 mb-2"
+                        placeholder="URL de imagen/recibo"
+                        value={deliveryInfo[order.id]?.url || ''}
+                        onChangeText={(t) => setDeliveryInfo({ ...deliveryInfo, [order.id]: { ...deliveryInfo[order.id], url: t } })}
+                      />
+                      <TextInput
+                        className="text-xs bg-white p-2 rounded border border-gray-200 mb-2"
+                        placeholder="Notas (ej: Recibió portería)"
+                        value={deliveryInfo[order.id]?.notes || ''}
+                        onChangeText={(t) => setDeliveryInfo({ ...deliveryInfo, [order.id]: { ...deliveryInfo[order.id], notes: t } })}
+                      />
+                      <TouchableOpacity
+                        onPress={() => handleMarkAsDelivered(order.id)}
+                        className="bg-green-600 py-2 rounded-lg items-center"
+                      >
+                        <Text className="text-white font-bold text-xs">Confirmar Entrega</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 ) : (
                   <TouchableOpacity

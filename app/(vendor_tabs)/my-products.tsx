@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, Alert } 
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Product } from '../../types/database';
-import { Edit2, Trash2, Plus } from 'lucide-react-native';
+import { Edit2, Trash2, Plus, Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 export default function MyProductsScreen() {
@@ -58,6 +58,20 @@ export default function MyProductsScreen() {
     fetchProducts();
   };
 
+  const toggleActive = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      setProducts(products.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
+  };
+
   const handleDelete = (id: string) => {
     Alert.alert('Eliminar producto', '¿Estás seguro de que deseas eliminar este producto?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -93,7 +107,7 @@ export default function MyProductsScreen() {
         keyExtractor={(item) => item.id}
         className="px-4 py-4"
         renderItem={({ item }) => (
-          <View className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-row items-center mb-3">
+          <View className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-row items-center mb-3 ${!item.is_active ? 'opacity-50' : ''}`}>
             <Image
               source={{ uri: item.image_url || 'https://via.placeholder.com/150' }}
               className="w-16 h-16 rounded-lg mr-4"
@@ -106,6 +120,12 @@ export default function MyProductsScreen() {
               <Text className="text-gray-500 text-xs">Stock: {item.stock}</Text>
             </View>
             <View className="flex-row space-x-2">
+              <TouchableOpacity
+                onPress={() => toggleActive(item.id, item.is_active)}
+                className={`p-2 rounded-full ${item.is_active ? 'bg-gray-100' : 'bg-orange-100'}`}
+              >
+                {item.is_active ? <Eye size={20} color="#64748b" /> : <EyeOff size={20} color="#f97316" />}
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => router.push(`/(vendor_tabs)/add-product?id=${item.id}`)}
                 className="p-2 rounded-full bg-blue-50"

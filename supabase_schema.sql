@@ -40,6 +40,7 @@ CREATE TABLE products (
   unit_measure TEXT DEFAULT 'unid',
   category TEXT REFERENCES categories(name) ON UPDATE CASCADE,
   image_url TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(store_id, name)
 );
@@ -79,9 +80,12 @@ CREATE TABLE orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   buyer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   total_amount NUMERIC NOT NULL,
-  status TEXT CHECK (status IN ('pending', 'paid', 'shipped')) DEFAULT 'pending',
+  status TEXT CHECK (status IN ('pending', 'paid', 'shipped', 'delivered')) DEFAULT 'pending',
   dispatch_date TIMESTAMP WITH TIME ZONE,
   delivery_address TEXT,
+  payment_evidence_url TEXT,
+  delivery_evidence_url TEXT,
+  delivery_notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
