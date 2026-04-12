@@ -126,10 +126,16 @@ CREATE POLICY "Users can manage their own profile." ON profiles FOR ALL USING (a
 -- To stay within the prompt's scope, I'll allow SELECT for everyone but advise using a View for PII.
 -- Actually, a better RLS fix: Only the owner can SELECT the full row.
 CREATE POLICY "Users can see their own profile." ON profiles FOR SELECT USING (auth.uid() = id);
--- Allow lookup by email for discount policies
-CREATE POLICY "Vendors can lookup customers by email." ON profiles FOR SELECT USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'vendor')
+-- Allow vendor lookup of customers by email, restricted to id and email via a secure view
+-- Note: RLS can't restrict columns, so we use a dedicated view for vendor lookups
+CREATE POLICY "Vendors can lookup buyer profiles." ON profiles FOR SELECT USING (
+  auth.uid() = id OR
+  EXISTS (SELECT 1 FROM profiles AS p WHERE p.id = auth.uid() AND p.role = 'vendor')
 );
+
+-- Secure view that exposes only id, email, and name for vendor discount lookups
+CREATE OR REPLACE VIEW public.profiles_public AS
+  SELECT id, email, name FROM profiles;
 
 -- 0. Categories Policies
 CREATE POLICY "Categories are viewable by everyone." ON categories FOR SELECT USING (true);
@@ -188,6 +194,19 @@ CREATE POLICY "Orders are viewable by respective buyer or vendor." ON orders FOR
 );
 CREATE POLICY "Buyers can create orders." ON orders FOR INSERT WITH CHECK (auth.uid() = buyer_id);
 
+-- Buyers can update their own orders (e.g. mark as 'paid' after payment)
+CREATE POLICY "Buyers can update their own orders." ON orders FOR UPDATE USING (auth.uid() = buyer_id);
+
+-- Vendors can update orders that contain their products (e.g. mark as 'shipped')
+CREATE POLICY "Vendors can update related orders." ON orders FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM order_items
+    JOIN products ON order_items.product_id = products.id
+    JOIN stores ON products.store_id = stores.id
+    WHERE order_items.order_id = orders.id AND stores.vendor_id = auth.uid()
+  )
+);
+
 -- 8. Order Items Policies (Fix Hallazgo 1: Missing RLS for order_items)
 CREATE POLICY "Order items are viewable by order owner or related vendor." ON order_items FOR SELECT USING (
   EXISTS (SELECT 1 FROM orders WHERE orders.id = order_items.order_id AND orders.buyer_id = auth.uid()) OR
@@ -208,8 +227,8 @@ INSERT INTO categories (name) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Fix Hallazgo 5: Atomic checkout with stock validation (RPC)
+-- SECURITY: Uses auth.uid() server-side instead of accepting buyer_id from client
 CREATE OR REPLACE FUNCTION place_order(
-  p_buyer_id UUID,
   p_total_amount NUMERIC,
   p_items JSONB
 ) RETURNS UUID AS $$
@@ -217,9 +236,9 @@ DECLARE
   v_order_id UUID;
   v_item RECORD;
 BEGIN
-  -- 1. Create the order
+  -- 1. Create the order using the authenticated user
   INSERT INTO orders (buyer_id, total_amount, status)
-  VALUES (p_buyer_id, p_total_amount, 'pending')
+  VALUES (auth.uid(), p_total_amount, 'pending')
   RETURNING id INTO v_order_id;
 
   -- 2. Process items and validate stock

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
@@ -11,7 +11,6 @@ export default function RootLayout() {
   const { profile, setProfile, loading, setLoading } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
-  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
   // 1. Hydrate session and listen to auth changes
   useEffect(() => {

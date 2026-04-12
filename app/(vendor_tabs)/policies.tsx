@@ -44,6 +44,12 @@ export default function DiscountPoliciesScreen() {
       return;
     }
 
+    const discountValue = parseFloat(form.discount);
+    if (isNaN(discountValue) || discountValue < 0 || discountValue > 100) {
+      Alert.alert('Error', 'El porcentaje debe ser un número entre 0 y 100');
+      return;
+    }
+
     setLoading(true);
     try {
       // Find customer by email
@@ -59,7 +65,7 @@ export default function DiscountPoliciesScreen() {
         vendor_id: profile.id,
         customer_id: customer.id,
         category: form.category === 'Todas' ? null : form.category,
-        discount_percentage: parseFloat(form.discount),
+        discount_percentage: discountValue,
       });
 
       if (error) throw error;

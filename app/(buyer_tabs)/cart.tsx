@@ -91,7 +91,6 @@ export default function CartScreen() {
       }));
 
       const { data: orderId, error: checkoutError } = await supabase.rpc('place_order', {
-        p_buyer_id: profile.id,
         p_total_amount: total,
         p_items: orderItems,
       });
