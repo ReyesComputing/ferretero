@@ -14,9 +14,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ferretero.app"
     },
     "android": {
+      "package": "com.ferretero.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,6 +31,7 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "platforms": ["ios", "android", "web"],
     "plugins": [
       "expo-router"
     ],

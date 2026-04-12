@@ -94,6 +94,13 @@ CREATE TABLE order_items (
   unit_price NUMERIC NOT NULL
 );
 
+-- Performance Indexes
+CREATE INDEX idx_products_category ON products(category);
+CREATE INDEX idx_products_store_id ON products(store_id);
+CREATE INDEX idx_orders_buyer_id ON orders(buyer_id);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_vendor_discounts_vendor_customer ON vendor_discounts(vendor_id, customer_id);
+
 -- Enable RLS (Row Level Security)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
