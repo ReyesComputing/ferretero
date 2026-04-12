@@ -39,20 +39,21 @@ export default function VendorDashboard() {
 
       const castData = itemData as any[];
       const totalSales = castData.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
-      const uniqueOrderIds = Array.from(new Set(castData.map(item => item.orders.id)));
+      const uniqueOrderIdsSet = new Set(castData.map(item => item.orders.id));
+      const uniqueOrderIdsArray = Array.from(uniqueOrderIdsSet);
 
       setStats({
         totalSales,
-        totalOrders: uniqueOrderIds.size,
+        totalOrders: uniqueOrderIdsSet.size,
         pendingOrders: new Set(castData.filter(item => item.orders.status === 'pending').map(item => item.orders.id)).size,
       });
 
       // Fetch actual orders for dispatching
-      if (uniqueOrderIds.length > 0) {
+      if (uniqueOrderIdsArray.length > 0) {
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
           .select('*, profiles(name, email)')
-          .in('id', uniqueOrderIds)
+          .in('id', uniqueOrderIdsArray)
           .order('created_at', { ascending: false });
 
         if (orderError) throw orderError;
