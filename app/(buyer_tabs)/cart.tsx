@@ -102,22 +102,22 @@ export default function CartScreen() {
         {/* Lista de Items */}
         <View className="space-y-4 mb-10">
           {items.map((item) => (
-            <View key={item.product.id} className="bg-white p-4 rounded-ferretero border border-gray-100 flex-row items-center shadow-sm">
-              <Image source={{ uri: item.product.image_url }} className="w-16 h-16 rounded-ferretero bg-gray-50" />
+            <View key={item.id} className="bg-white p-4 rounded-ferretero border border-gray-100 flex-row items-center shadow-sm">
+              <Image source={{ uri: item.image_url }} className="w-16 h-16 rounded-ferretero bg-gray-50" />
               <View className="ml-4 flex-1">
-                <Text className="text-secondary font-black text-xs uppercase tracking-tight" numberOfLines={1}>{item.product.name}</Text>
-                <Text className="text-primary font-black text-sm mt-1">{formatPrice(item.product.price)}</Text>
+                <Text className="text-secondary font-black text-xs uppercase tracking-tight" numberOfLines={1}>{item.name}</Text>
+                <Text className="text-primary font-black text-sm mt-1">{formatPrice(item.price)}</Text>
                 <View className="flex-row items-center mt-2">
-                  <TouchableOpacity onPress={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))} className="bg-gray-50 p-1 rounded-ferretero border border-gray-200">
+                  <TouchableOpacity onPress={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="bg-gray-50 p-1 rounded-ferretero border border-gray-200">
                     <Minus size={14} color="#1E293B" />
                   </TouchableOpacity>
                   <Text className="mx-4 font-black text-secondary">{item.quantity}</Text>
-                  <TouchableOpacity onPress={() => updateQuantity(item.product.id, item.quantity + 1)} className="bg-gray-50 p-1 rounded-ferretero border border-gray-200">
+                  <TouchableOpacity onPress={() => updateQuantity(item.id, item.quantity + 1)} className="bg-gray-50 p-1 rounded-ferretero border border-gray-200">
                     <Plus size={14} color="#1E293B" />
                   </TouchableOpacity>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => removeItem(item.product.id)} className="p-2 ml-2">
+              <TouchableOpacity onPress={() => removeItem(item.id)} className="p-2 ml-2">
                 <Trash2 size={20} color="#EF4444" />
               </TouchableOpacity>
             </View>

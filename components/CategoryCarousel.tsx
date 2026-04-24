@@ -1,11 +1,11 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text } from 'react-native';
-import { Package, Construction, Paintbucket, Droplets, Zap, Layers, Map, Grid } from 'lucide-react-native';
+import { Package, Construction, PaintBucket, Droplets, Zap, Layers, Map, Grid } from 'lucide-react-native';
 
 const CATEGORIES = [
   { id: '', name: 'Todo', icon: Package },
   { id: 'estructura', name: 'Estructura', icon: Construction },
-  { id: 'acabados', name: 'Acabados', icon: Paintbucket },
+  { id: 'acabados', name: 'Acabados', icon: PaintBucket },
   { id: 'cubiertas', name: 'Cubiertas', icon: Layers },
   { id: 'hidrosanitarios', name: 'Plomería', icon: Droplets },
   { id: 'electricos', name: 'Eléctricos', icon: Zap },
@@ -33,7 +33,6 @@ export const CategoryCarousel = ({ selected, onSelect }: Props) => {
         return (
           <TouchableOpacity
             key={cat.id}
-            onSelect={() => onSelect(cat.id)}
             onPress={() => onSelect(cat.id)}
             className={`mr-3 px-5 py-3 rounded-ferretero border-2 flex-row items-center ${
               isActive ? 'bg-secondary border-secondary' : 'bg-white border-gray-100'
