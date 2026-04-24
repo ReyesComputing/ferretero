@@ -1,14 +1,15 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Product } from '../types/database';
-import { useCartStore } from '../store/useCartStore';
+import { useRouter } from 'expo-router';
+import { Plus } from 'lucide-react-native';
 
 interface ProductCardProps {
   product: Product;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
-  const addItem = useCartStore((state) => state.addItem);
+export const ProductCard = ({ product }: ProductCardProps) => {
+  const router = useRouter();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-CO', {
@@ -19,31 +20,31 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <View className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden border border-gray-100">
-      <Image
-        source={{ uri: product.image_url || 'https://via.placeholder.com/150' }}
-        className="w-full h-48"
+    <TouchableOpacity 
+      onPress={() => router.push(`/product/${product.id}` as any)}
+      className="bg-white rounded-ferretero border border-gray-200 mb-4 overflow-hidden shadow-sm"
+    >
+      <Image 
+        source={{ uri: product.image_url || 'https://via.placeholder.com/300' }}
+        className="w-full h-48 bg-gray-50"
         resizeMode="cover"
       />
       <View className="p-4">
-        <Text className="text-lg font-bold text-gray-800" numberOfLines={1}>
+        <Text className="text-gray-400 font-black uppercase text-[9px] tracking-widest">{product.brand || 'Genérico'}</Text>
+        <Text className="text-secondary font-black text-sm uppercase tracking-tight mt-1" numberOfLines={1}>
           {product.name}
         </Text>
-        <View className="flex-row justify-between items-center mt-1">
-          <Text className="text-blue-600 font-bold text-lg">
-            {formatPrice(product.price)}
-          </Text>
-          <Text className="text-gray-500 text-sm italic">
-            por {product.unit_measure || 'unid'}
-          </Text>
+        
+        <View className="flex-row justify-between items-end mt-4">
+          <View>
+            <Text className="text-gray-400 font-bold text-[10px] uppercase">Precio Obra</Text>
+            <Text className="text-primary font-black text-lg tracking-tighter">{formatPrice(product.price)}</Text>
+          </View>
+          <View className="bg-primary p-2 rounded-ferretero">
+            <Plus size={20} color="white" />
+          </View>
         </View>
-        <TouchableOpacity
-          onPress={() => addItem(product)}
-          className="bg-blue-600 py-2 rounded-lg mt-3 items-center"
-        >
-          <Text className="text-white font-bold">Añadir al carrito</Text>
-        </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
-}
+};

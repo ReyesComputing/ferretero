@@ -1,52 +1,55 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, TouchableOpacity, Text, View } from 'react-native';
-import { supabase } from '../lib/supabase';
+import React from 'react';
+import { ScrollView, TouchableOpacity, Text } from 'react-native';
+import { Package, Construction, Paintbucket, Droplets, Zap, Layers, Map, Grid } from 'lucide-react-native';
 
-interface Category {
-  id: string;
-  name: string;
+const CATEGORIES = [
+  { id: '', name: 'Todo', icon: Package },
+  { id: 'estructura', name: 'Estructura', icon: Construction },
+  { id: 'acabados', name: 'Acabados', icon: Paintbucket },
+  { id: 'cubiertas', name: 'Cubiertas', icon: Layers },
+  { id: 'hidrosanitarios', name: 'Plomería', icon: Droplets },
+  { id: 'electricos', name: 'Eléctricos', icon: Zap },
+  { id: 'geotextiles', name: 'Geosintéticos', icon: Map },
+  { id: 'drenes', name: 'Drenaje', icon: Grid },
+];
+
+interface Props {
+  selected: string;
+  onSelect: (id: string) => void;
 }
 
-interface CategoryCarouselProps {
-  onSelectCategory: (category: string) => void;
-  selectedCategory: string;
-}
-
-export function CategoryCarousel({ onSelectCategory, selectedCategory }: CategoryCarouselProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('id, name');
-    if (data) setCategories(data);
-  };
-
+export const CategoryCarousel = ({ selected, onSelect }: Props) => {
   return (
-    <View className="py-4">
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-4">
-        {categories.map((category) => (
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      className="py-4"
+      contentContainerStyle={{ paddingHorizontal: 24 }}
+    >
+      {CATEGORIES.map((cat) => {
+        const Icon = cat.icon;
+        const isActive = selected === cat.id;
+        
+        return (
           <TouchableOpacity
-            key={category.id}
-            onPress={() => onSelectCategory(category.name)}
-            className={`mr-3 px-6 py-2 rounded-full border ${
-              selectedCategory === category.name
-                ? 'bg-blue-600 border-blue-600'
-                : 'bg-white border-gray-200'
+            key={cat.id}
+            onSelect={() => onSelect(cat.id)}
+            onPress={() => onSelect(cat.id)}
+            className={`mr-3 px-5 py-3 rounded-ferretero border-2 flex-row items-center ${
+              isActive ? 'bg-secondary border-secondary' : 'bg-white border-gray-100'
             }`}
           >
-            <Text
-              className={`font-semibold ${
-                selectedCategory === category.name ? 'text-white' : 'text-gray-600'
+            <Icon size={16} color={isActive ? '#FF6600' : '#94a3b8'} />
+            <Text 
+              className={`ml-2 font-black uppercase text-[10px] tracking-widest ${
+                isActive ? 'text-white' : 'text-gray-400'
               }`}
             >
-              {category.name}
+              {cat.name}
             </Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
+        );
+      })}
+    </ScrollView>
   );
-}
+};

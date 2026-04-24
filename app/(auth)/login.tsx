@@ -1,117 +1,92 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Profile } from '../../types/database';
+import { useRouter } from 'expo-router';
+import { Hammer } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const setProfile = useAuthStore((state) => state.setProfile);
+  const insets = useSafeAreaInsets();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Por favor llena todos los campos');
+      Alert.alert('Datos incompletos', 'Por favor ingresa tu correo y contraseña');
       return;
     }
-
     setLoading(true);
-    try {
-      console.log('Intentando iniciar sesión para:', email);
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        console.error('Error de autenticación:', authError.message);
-        throw authError;
-      }
-
-      if (authData.user) {
-        console.log('Usuario autenticado, obteniendo perfil...');
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error al obtener perfil:', profileError.message);
-          // Si no hay perfil, podríamos estar ante un error de datos.
-          // Intentamos cerrar sesión para no quedar en estado inconsistente.
-          await supabase.auth.signOut();
-          throw new Error('No se encontró un perfil asociado a esta cuenta. Por favor regístrate de nuevo.');
-        }
-
-        console.log('Perfil obtenido con éxito:', profile.role);
-        setProfile(profile as Profile);
-
-        // La redirección ocurrirá automáticamente en _layout.tsx gracias al useEffect de profile
-      }
-    } catch (error: any) {
-      Alert.alert('Error de acceso', error.message || 'Ocurrió un error inesperado');
-    } finally {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      Alert.alert('Error de acceso', error.message);
       setLoading(false);
+    } else {
+      router.replace('/');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-gray-50"
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      className="flex-1 bg-background"
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 py-12">
-        <View className="flex-1 justify-center">
-          <Text className="text-4xl font-bold text-blue-600 text-center mb-8">ListoShop</Text>
-          <Text className="text-2xl font-semibold text-gray-800 mb-6 text-center">Bienvenido de nuevo</Text>
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
+        className="px-8"
+      >
+        <View className="flex-1 justify-center py-10">
+          {/* Logo y Título Industrial */}
+          <View className="items-center mb-12">
+            <View className="bg-primary p-4 rounded-ferretero shadow-lg shadow-orange-500/40">
+              <Hammer size={48} color="white" />
+            </View>
+            <Text className="text-4xl font-black text-secondary mt-6 uppercase tracking-tighter">Ferretero</Text>
+            <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mt-1">Suministros Industriales</Text>
+          </View>
 
-          <View className="space-y-4">
-            <View className="mb-4">
-              <Text className="text-gray-600 mb-2">Correo Electrónico</Text>
+          {/* Formulario Sólido */}
+          <View className="space-y-5">
+            <View>
+              <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Correo Electrónico</Text>
               <TextInput
-                className="bg-white border border-gray-200 p-4 rounded-xl text-gray-800"
-                placeholder="tu@email.com"
+                className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+                placeholder="usuario@obra.com"
+                autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
               />
             </View>
 
-            <View className="mb-6">
-              <Text className="text-gray-600 mb-2">Contraseña</Text>
+            <View>
+              <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Contraseña</Text>
               <TextInput
-                className="bg-white border border-gray-200 p-4 rounded-xl text-gray-800"
-                placeholder="********"
+                className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+                placeholder="••••••••"
+                secureTextEntry
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
               />
             </View>
 
-            <TouchableOpacity
+            <TouchableOpacity 
               onPress={handleLogin}
               disabled={loading}
-              className={`bg-blue-600 py-4 rounded-xl items-center ${loading ? 'opacity-50' : ''}`}
+              className="bg-primary h-[64px] rounded-ferretero items-center justify-center shadow-xl shadow-orange-500/30 mt-4"
             >
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white font-bold text-lg">Iniciar Sesión</Text>
+                <Text className="text-white font-black text-lg uppercase tracking-tighter">Entrar al Sistema</Text>
               )}
             </TouchableOpacity>
 
             <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600">¿No tienes cuenta? </Text>
-              <Link href="/(auth)/register" asChild>
-                <TouchableOpacity>
-                  <Text className="text-blue-600 font-bold">Regístrate</Text>
-                </TouchableOpacity>
-              </Link>
+              <Text className="text-gray-500 font-bold">¿Nuevo en el gremio? </Text>
+              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+                <Text className="text-primary font-black uppercase">Regístrate aquí</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

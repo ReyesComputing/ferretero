@@ -1,52 +1,48 @@
-import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, PlusCircle, Package, User, Percent } from 'lucide-react-native';
+import { LayoutDashboard, Package, ClipboardList, User } from 'lucide-react-native';
 
 export default function VendorLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2563eb', // blue-600
-        tabBarInactiveTintColor: '#64748b', // slate-500
-        headerShown: true,
+        headerShown: false,
+        tabBarActiveTintColor: '#1D4ED8',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#f1f5f9',
-          height: 60,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 2,
+          borderTopColor: '#F1F5F9',
+          height: 64,
           paddingBottom: 10,
+          paddingTop: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '900',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
         },
       }}
     >
       <Tabs.Screen
         name="dashboard"
         options={{
-          title: 'Ventas',
-          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
-          headerTitle: 'Panel del Vendedor',
+          title: 'Panel',
+          tabBarIcon: ({ color }) => <LayoutDashboard size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="my-products"
         options={{
-          title: 'Mis Productos',
-          tabBarIcon: ({ color, size }) => <Package size={size} color={color} />,
-          headerTitle: 'Inventario',
+          title: 'Inventario',
+          tabBarIcon: ({ color }) => <Package size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="add-product"
+        name="orders"
         options={{
-          title: 'Nuevo',
-          tabBarIcon: ({ color, size }) => <PlusCircle size={size} color={color} />,
-          headerTitle: 'Agregar Producto',
-        }}
-      />
-      <Tabs.Screen
-        name="policies"
-        options={{
-          title: 'Descuentos',
-          tabBarIcon: ({ color, size }) => <Percent size={size} color={color} />,
-          headerTitle: 'Políticas de Descuento',
+          title: 'Ventas',
+          tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
         }}
       />
     </Tabs>

@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { Product } from '../types/database';
 
-export interface CartItem extends Product {
+interface CartItem extends Product {
   quantity: number;
 }
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -17,33 +17,37 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   total: 0,
-  addItem: (product) => {
-    const currentItems = get().items;
-    const existingItem = currentItems.find((item) => item.id === product.id);
+  addItem: (product, quantity = 1) => {
+    const items = get().items;
+    const existingItem = items.find((item) => item.id === product.id);
 
-    let newItems;
     if (existingItem) {
-      newItems = currentItems.map((item) =>
-        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      const updatedItems = items.map((item) =>
+        item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item
       );
+      set({ items: updatedItems, total: get().total + (product.price * quantity) });
     } else {
-      newItems = [...currentItems, { ...product, quantity: 1 }];
+      set({ items: [...items, { ...product, quantity }], total: get().total + (product.price * quantity) });
     }
-
-    const total = newItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    set({ items: newItems, total });
   },
   removeItem: (productId) => {
-    const newItems = get().items.filter((item) => item.id !== productId);
-    const total = newItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    set({ items: newItems, total });
+    const items = get().items;
+    const itemToRemove = items.find((item) => item.id === productId);
+    if (!itemToRemove) return;
+
+    set({
+      items: items.filter((item) => item.id !== productId),
+      total: get().total - (itemToRemove.price * itemToRemove.quantity),
+    });
   },
   updateQuantity: (productId, quantity) => {
-    const newItems = get().items.map((item) =>
+    const items = get().items;
+    const updatedItems = items.map((item) =>
       item.id === productId ? { ...item, quantity } : item
     );
-    const total = newItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    set({ items: newItems, total });
+    
+    const newTotal = updatedItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    set({ items: updatedItems, total: newTotal });
   },
   clearCart: () => set({ items: [], total: 0 }),
 }));

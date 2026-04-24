@@ -7,9 +7,6 @@ export interface Profile {
   name: string;
   phone?: string;
   address?: string;
-  nit?: string;
-  rut_url?: string;
-  billing_email?: string;
   created_at: string;
 }
 

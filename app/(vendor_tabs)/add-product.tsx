@@ -1,286 +1,224 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { decode } from 'base64-arraybuffer';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Camera, ChevronDown } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { Plus, Camera, ChevronLeft, Save } from 'lucide-react-native';
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base-64';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function AddProductScreen() {
+export default function AddProduct() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuthStore();
   const { id } = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(!!id);
 
   const [form, setForm] = useState({
     name: '',
+    brand: '',
     description: '',
     price: '',
     stock: '',
-    unit_measure: 'unid',
-    category: '',
+    category: 'otros',
+    image_url: '',
   });
 
   useEffect(() => {
-    fetchCategories();
-    fetchStore();
-    if (id) {
-      fetchProductDetails();
-    }
-  }, [id, profile]);
+    if (id) fetchProduct();
+  }, [id]);
 
-  const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('name');
+  const fetchProduct = async () => {
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     if (data) {
-      setCategories(data.map(c => c.name));
-      if (!form.category) setForm(prev => ({ ...prev, category: data[0].name }));
-    }
-  };
-
-  const fetchStore = async () => {
-    if (!profile) return;
-    try {
-      const { data, error } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('vendor_id', profile.id)
-        .single();
-
-      if (error && error.code === 'PGRST116') {
-        const { data: newStore, error: createError } = await supabase
-          .from('stores')
-          .insert({ vendor_id: profile.id, name: `Tienda de ${profile.name}` })
-          .select()
-          .single();
-        if (createError) throw createError;
-        setStoreId(newStore.id);
-      } else if (error) {
-        throw error;
-      } else {
-        setStoreId(data.id);
-      }
-    } catch (err) {
-      console.error('Error fetching/creating store:', err);
-    }
-  };
-
-  const fetchProductDetails = async () => {
-    setFetching(true);
-    try {
-      const { data, error } = await supabase.from('products').select('*').eq('id', id).single();
-      if (error) throw error;
       setForm({
         name: data.name,
+        brand: data.brand || '',
         description: data.description || '',
         price: data.price.toString(),
         stock: data.stock.toString(),
-        unit_measure: data.unit_measure || 'unid',
         category: data.category,
+        image_url: data.image_url || '',
       });
-      setImage(data.image_url);
-    } catch (error) {
-      console.error('Error fetching product details:', error);
-    } finally {
-      setFetching(false);
     }
+    setFetching(false);
   };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.5,
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      uploadImage(result.assets[0].uri);
     }
   };
 
-  const uploadImageToSupabase = async (uri: string) => {
-    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
-    const fileName = `${Date.now()}.jpg`;
-    const filePath = `products/${profile?.id}/${fileName}`;
-    const contentType = 'image/jpeg';
-
-    const { data, error } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, decode(base64), { contentType });
-
-    if (error) throw error;
-
-    const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(filePath);
-    return publicUrl;
-  };
-
-  const handleSave = async () => {
-    if (!profile || !storeId) return;
-
-    // Fix Hallazgo 8: Robust price/stock validation
-    const numericPrice = parseFloat(form.price);
-    const numericStock = parseInt(form.stock);
-
-    if (!form.name || isNaN(numericPrice) || isNaN(numericStock)) {
-      Alert.alert('Error', 'Por favor llena los campos obligatorios con valores numéricos válidos');
-      return;
-    }
-
-    if (numericPrice <= 0) {
-      Alert.alert('Error', 'El precio debe ser mayor a 0 pesos colombianos (COP)');
-      return;
-    }
-
-    if (numericStock < 0) {
-      Alert.alert('Error', 'El stock no puede ser negativo');
-      return;
-    }
-
+  const uploadImage = async (uri: string) => {
     setLoading(true);
     try {
-      let image_url = image;
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+      const filePath = `products/${profile?.id}/${Date.now()}.jpg`;
+      
+      const { error } = await supabase.storage
+        .from('documents')
+        .upload(filePath, decode(base64), { contentType: 'image/jpeg' });
 
-      if (image && image.startsWith('file://')) {
-        image_url = await uploadImageToSupabase(image);
-      }
+      if (error) throw error;
 
-      const productData = {
-        name: form.name,
-        description: form.description,
-        price: numericPrice,
-        stock: numericStock,
-        unit_measure: form.unit_measure,
-        category: form.category,
-        image_url,
-        store_id: storeId,
-      };
-
-      if (id) {
-        const { error } = await supabase.from('products').update(productData).eq('id', id);
-        if (error) throw error;
-        Alert.alert('Éxito', 'Producto actualizado correctamente');
-      } else {
-        const { error } = await supabase.from('products').insert(productData);
-        if (error) throw error;
-        Alert.alert('Éxito', 'Producto agregado correctamente');
-      }
-
-      router.replace('/(vendor_tabs)/my-products');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al guardar el producto');
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(filePath);
+      setForm({ ...form, image_url: publicUrl });
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  if (fetching) return <View className="flex-1 items-center justify-center"><ActivityIndicator size="large" color="#2563eb" /></View>;
+  const handleSave = async () => {
+    if (!form.name || !form.price || !form.stock) {
+      Alert.alert('Datos Incompletos', 'Nombre, Precio y Stock son obligatorios.');
+      return;
+    }
+
+    setLoading(true);
+    const productData = {
+      name: form.name,
+      brand: form.brand,
+      description: form.description,
+      price: parseFloat(form.price),
+      stock: parseInt(form.stock),
+      category: form.category,
+      image_url: form.image_url,
+      vendor_id: profile?.id,
+    };
+
+    try {
+      const { error } = id 
+        ? await supabase.from('products').update(productData).eq('id', id)
+        : await supabase.from('products').insert(productData);
+
+      if (error) throw error;
+      router.back();
+    } catch (e: any) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetching) return <View className="flex-1 justify-center bg-vendorBackground"><ActivityIndicator color="#1D4ED8" /></View>;
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 px-6 py-6">
-      <TouchableOpacity
-        onPress={pickImage}
-        className="bg-white border-2 border-dashed border-gray-300 rounded-2xl h-48 mb-6 items-center justify-center overflow-hidden"
-      >
-        {image ? (
-          <Image source={{ uri: image }} className="w-full h-full" />
-        ) : (
-          <View className="items-center">
-            <Camera size={40} color="#64748b" />
-            <Text className="text-gray-400 mt-2 font-bold">Subir foto del producto</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-
-      <View className="space-y-4 mb-10">
-        <View>
-          <Text className="text-gray-600 mb-2 font-semibold">Nombre del producto *</Text>
-          <TextInput
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="Ej: Cemento Gris Argos 50kg"
-            value={form.name}
-            onChangeText={(t) => setForm({ ...form, name: t })}
-          />
-        </View>
-
-        <View>
-          <Text className="text-gray-600 mb-2 font-semibold">Descripción</Text>
-          <TextInput
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="Características del producto..."
-            multiline
-            numberOfLines={4}
-            value={form.description}
-            onChangeText={(t) => setForm({ ...form, description: t })}
-          />
-        </View>
-
-        <View className="flex-row space-x-4">
-          <View className="flex-1">
-            <Text className="text-gray-600 mb-2 font-semibold">Precio (COP) *</Text>
-            <TextInput
-              className="bg-white border border-gray-200 p-4 rounded-xl"
-              placeholder="150000"
-              keyboardType="numeric"
-              value={form.price}
-              onChangeText={(t) => setForm({ ...form, price: t })}
-            />
-          </View>
-          <View className="flex-1 ml-4">
-            <Text className="text-gray-600 mb-2 font-semibold">Stock *</Text>
-            <TextInput
-              className="bg-white border border-gray-200 p-4 rounded-xl"
-              placeholder="10"
-              keyboardType="numeric"
-              value={form.stock}
-              onChangeText={(t) => setForm({ ...form, stock: t })}
-            />
-          </View>
-        </View>
-
-        <View>
-          <Text className="text-gray-600 mb-2 font-semibold">Unidad de Medida *</Text>
-          <TextInput
-            className="bg-white border border-gray-200 p-4 rounded-xl"
-            placeholder="Ej: 50kg, bulto, m2, m, unid"
-            value={form.unit_measure}
-            onChangeText={(t) => setForm({ ...form, unit_measure: t })}
-          />
-        </View>
-
-        <View>
-          <Text className="text-gray-600 mb-2 font-semibold">Categoría</Text>
-          <View className="flex-row flex-wrap">
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setForm({ ...form, category: cat })}
-                className={`mr-2 mb-2 px-4 py-2 rounded-lg border ${
-                  form.category === cat ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                }`}
-              >
-                <Text className={`font-semibold capitalize ${form.category === cat ? 'text-white' : 'text-gray-600'}`}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={loading || !storeId}
-          className={`bg-blue-600 py-4 rounded-xl items-center mt-6 ${loading || !storeId ? 'opacity-50' : ''}`}
-        >
-          <Text className="text-white font-bold text-lg">
-            {loading ? 'Guardando...' : id ? 'Actualizar Producto' : 'Publicar Producto'}
-          </Text>
+    <ScrollView 
+      style={{ paddingTop: insets.top }}
+      className="flex-1 bg-vendorBackground"
+    >
+      <View className="p-6 pb-20">
+        <TouchableOpacity onPress={() => router.back()} className="mb-4 flex-row items-center">
+          <ChevronLeft size={20} color="#1D4ED8" />
+          <Text className="text-vendorPrimary font-black uppercase text-xs ml-1">Volver al Inventario</Text>
         </TouchableOpacity>
+
+        <Text className="text-3xl font-black text-vendorSecondary uppercase tracking-tighter mb-8">
+          {id ? 'Editar Material' : 'Nuevo Material'}
+        </Text>
+
+        <TouchableOpacity 
+          onPress={pickImage}
+          className="bg-white w-full h-56 rounded-ferretero border-2 border-dashed border-gray-300 items-center justify-center mb-8 overflow-hidden shadow-sm"
+        >
+          {form.image_url ? (
+            <Image source={{ uri: form.image_url }} className="w-full h-full" resizeMode="cover" />
+          ) : (
+            <View className="items-center">
+              <Camera size={40} color="#94a3b8" />
+              <Text className="text-gray-400 font-black uppercase text-[10px] mt-2 tracking-widest">Añadir Foto Técnica</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        <View className="space-y-6">
+          <View className="mb-4">
+            <Text className="text-vendorSecondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Nombre Comercial *</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-vendorSecondary"
+              placeholder="Ej: Cemento Gris 50kg"
+              value={form.name}
+              onChangeText={(t) => setForm({...form, name: t})}
+            />
+          </View>
+
+          <View className="mb-4">
+            <Text className="text-vendorSecondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Marca / Fabricante</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-vendorSecondary"
+              placeholder="Ej: Argos, Holcim"
+              value={form.brand}
+              onChangeText={(t) => setForm({...form, brand: t})}
+            />
+          </View>
+
+          <View className="flex-row justify-between mb-4">
+            <View className="w-[48%]">
+              <Text className="text-vendorSecondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Precio Obra *</Text>
+              <TextInput
+                className="bg-white p-4 rounded-ferretero border border-gray-200 font-black text-vendorPrimary"
+                placeholder="0"
+                keyboardType="numeric"
+                value={form.price}
+                onChangeText={(t) => setForm({...form, price: t})}
+              />
+            </View>
+            <View className="w-[48%]">
+              <Text className="text-vendorSecondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Stock Inicial *</Text>
+              <TextInput
+                className="bg-white p-4 rounded-ferretero border border-gray-200 font-black text-vendorSecondary"
+                placeholder="0"
+                keyboardType="numeric"
+                value={form.stock}
+                onChangeText={(t) => setForm({...form, stock: t})}
+              />
+            </View>
+          </View>
+
+          <View className="mb-8">
+            <Text className="text-vendorSecondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Especificaciones Técnicas</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-medium text-secondary h-32"
+              placeholder="Detalles técnicos, usos, rendimiento..."
+              multiline
+              value={form.description}
+              onChangeText={(t) => setForm({...form, description: t})}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={loading}
+            className="bg-vendorPrimary h-[64px] rounded-ferretero items-center justify-center flex-row shadow-xl shadow-blue-500/30"
+          >
+            {loading ? <ActivityIndicator color="white" /> : (
+              <>
+                <Save size={20} color="white" />
+                <Text className="text-white font-black text-xl ml-4 uppercase tracking-tighter">
+                  {id ? 'Actualizar en Catálogo' : 'Publicar en Catálogo'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );

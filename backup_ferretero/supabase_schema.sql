@@ -7,11 +7,6 @@ CREATE TABLE public.profiles (
   email TEXT UNIQUE NOT NULL,
   name TEXT,
   role TEXT CHECK (role IN ('buyer', 'vendor')) DEFAULT 'buyer',
-  nit TEXT,
-  address TEXT,
-  phone TEXT,
-  billing_email TEXT,
-  rut_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -189,44 +184,4 @@ CREATE TABLE public.categories (
 INSERT INTO public.categories (name) VALUES 
 ('Construcción'), ('Herramientas'), ('Pinturas'), ('Eléctricos'), ('Plomería')
 ON CONFLICT (name) DO NOTHING;
-
--- 11. Reseñas (Reviews)
-CREATE TABLE public.reviews (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
-  buyer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  vendor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  rating_vendor INTEGER CHECK (rating_vendor BETWEEN 1 AND 5),
-  rating_products INTEGER CHECK (rating_products BETWEEN 1 AND 5),
-  comment TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(order_id)
-);
-
--- RLS para Reseñas
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can see reviews" ON public.reviews
-  FOR SELECT USING (true);
-
-CREATE POLICY "Buyers can create reviews" ON public.reviews
-  FOR INSERT WITH CHECK (auth.uid() = buyer_id);
-
--- 12. Documentos (PDFs generados)
-CREATE TABLE public.documents (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-  order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
-  quotation_id UUID REFERENCES public.quotations(id) ON DELETE SET NULL,
-  file_url TEXT NOT NULL,
-  file_name TEXT NOT NULL,
-  document_type TEXT CHECK (document_type IN ('quotation', 'invoice', 'receipt')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- RLS para Documentos
-ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can see their own documents" ON public.documents
-  FOR SELECT USING (auth.uid() = owner_id);
 

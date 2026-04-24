@@ -1,145 +1,136 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
-import { supabase } from '../../lib/supabase';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Order } from '../../types/database';
-import { User, LogOut, Package, MapPin, Phone } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { Building, MapPin, Phone, Mail, User, LogOut, Save, ShieldCheck } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
 
 export default function ProfileScreen() {
-  const { profile, signOut } = useAuthStore();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { profile, setProfile, signOut } = useAuthStore();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: profile?.name || '',
+    nit: profile?.nit || '',
+    address: profile?.address || '',
+    phone: profile?.phone || '',
+  });
 
-  const fetchOrders = async () => {
-    if (!profile) return;
+  const handleUpdate = async () => {
+    setLoading(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update(form)
+      .eq('id', profile?.id);
 
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('buyer_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      setProfile({ ...profile, ...form } as any);
+      Alert.alert('Éxito', 'Perfil actualizado correctamente.');
     }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, [profile]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchOrders();
-  };
-
-  const handleLogout = () => {
-    signOut();
-    router.replace('/(auth)/login');
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-700';
-      case 'shipped':
-        return 'bg-blue-100 text-blue-700';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+    setLoading(false);
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <FlatList
-        data={orders}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-3 mx-4">
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="font-bold text-gray-800">Orden #{item.id.slice(0, 8)}</Text>
-              <View className={`px-2 py-1 rounded-full ${getStatusColor(item.status)}`}>
-                <Text className="text-xs font-bold uppercase">{item.status}</Text>
-              </View>
-            </View>
-            <View className="flex-row justify-between items-center">
-              <Text className="text-gray-500">{formatDate(item.created_at)}</Text>
-              <Text className="text-blue-600 font-bold">{formatPrice(item.total_amount)}</Text>
-            </View>
-          </View>
-        )}
-        ListHeaderComponent={
-          <View className="p-6">
-            <View className="flex-row items-center space-x-4 mb-6">
-              <View className="bg-blue-600 p-4 rounded-full">
-                <User size={40} color="white" />
-              </View>
-              <View className="flex-1 ml-4">
-                <Text className="text-2xl font-bold text-gray-800">{profile?.name}</Text>
-                <Text className="text-gray-500">{profile?.email}</Text>
-              </View>
-              <TouchableOpacity
-                onPress={handleLogout}
-                className="p-3 rounded-full bg-red-50"
-              >
-                <LogOut size={24} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
+    <ScrollView 
+      style={{ paddingTop: insets.top }}
+      className="flex-1 bg-background"
+    >
+      <View className="p-6 pb-20">
+        <Text className="text-3xl font-black text-secondary uppercase tracking-tighter mb-8">Mi Perfil</Text>
 
-            <View className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 space-y-4">
-              <View className="flex-row items-center">
-                <MapPin size={20} color="#64748b" />
-                <Text className="ml-3 text-gray-600">{profile?.address || 'Cali, Colombia'}</Text>
-              </View>
-              <View className="flex-row items-center">
-                <Phone size={20} color="#64748b" />
-                <Text className="ml-3 text-gray-600">{profile?.phone || '+57 300 000 0000'}</Text>
-              </View>
+        {/* Tarjeta de Identidad Industrial */}
+        <View className="bg-secondary p-6 rounded-ferretero shadow-lg mb-8">
+          <View className="flex-row items-center mb-4">
+            <View className="bg-primary p-4 rounded-ferretero">
+              <User size={32} color="white" />
             </View>
+            <View className="ml-4">
+              <Text className="text-white font-black text-xl uppercase tracking-tighter">{profile?.name}</Text>
+              <Text className="text-blue-300 font-bold uppercase text-[10px] tracking-widest">{profile?.role}</Text>
+            </View>
+          </View>
+          <View className="flex-row items-center bg-white/5 p-3 rounded-ferretero">
+            <Mail size={16} color="rgba(255,255,255,0.5)" />
+            <Text className="text-white/60 ml-3 font-bold text-xs">{profile?.email}</Text>
+          </View>
+        </View>
 
-            <View className="flex-row items-center mb-4">
-              <Package size={24} color="#2563eb" />
-              <Text className="ml-2 text-xl font-bold text-gray-800">Mis Pedidos</Text>
+        {/* Formulario de Datos */}
+        <View className="space-y-6">
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Nombre Público</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+              value={form.name}
+              onChangeText={(t) => setForm({...form, name: t})}
+            />
+          </View>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">NIT / Cédula Fiscal</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+              <Building size={18} color="#94a3b8" />
+              <TextInput 
+                className="flex-1 ml-3 font-bold text-secondary" 
+                value={form.nit}
+                onChangeText={(t) => setForm({...form, nit: t})}
+              />
             </View>
           </View>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
-        }
-        ListEmptyComponent={
-          <View className="py-10 items-center">
-            <Text className="text-gray-400">Aún no has realizado pedidos.</Text>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Dirección de Obra</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+              <MapPin size={18} color="#94a3b8" />
+              <TextInput 
+                className="flex-1 ml-3 font-bold text-secondary" 
+                value={form.address}
+                onChangeText={(t) => setForm({...form, address: t})}
+              />
+            </View>
           </View>
-        }
-      />
-    </View>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Teléfono de Contacto</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+              <Phone size={18} color="#94a3b8" />
+              <TextInput 
+                className="flex-1 ml-3 font-bold text-secondary" 
+                value={form.phone}
+                onChangeText={(t) => setForm({...form, phone: t})}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleUpdate}
+            disabled={loading}
+            className="bg-primary h-[64px] rounded-ferretero items-center justify-center flex-row shadow-xl shadow-orange-500/30 mt-4"
+          >
+            {loading ? <ActivityIndicator color="white" /> : (
+              <>
+                <Save size={20} color="white" />
+                <Text className="text-white font-black text-lg ml-4 uppercase tracking-tighter">Guardar Cambios</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => signOut()}
+            className="bg-white border-2 border-red-500 h-[54px] rounded-ferretero items-center justify-center flex-row mt-4"
+          >
+            <LogOut size={20} color="#EF4444" />
+            <Text className="text-red-500 font-black text-sm ml-4 uppercase tracking-tighter">Cerrar Sesión</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View className="mt-10 flex-row items-center bg-gray-100 p-4 rounded-ferretero border border-gray-200">
+          <ShieldCheck size={20} color="#94a3b8" />
+          <Text className="text-gray-400 font-bold text-[9px] ml-3 uppercase tracking-widest">Protección de datos industriales cifrada</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }

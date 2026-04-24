@@ -1,52 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Image, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Product } from '../../types/database';
-import { Edit2, Trash2, Plus, Eye, EyeOff } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { Plus, Edit2, Trash2, Package, Eye, EyeOff } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function MyProductsScreen() {
+export default function MyProducts() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuthStore();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const fetchProducts = async () => {
     if (!profile) return;
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('vendor_id', profile.id)
+      .order('created_at', { ascending: false });
 
-    try {
-      // 1. Get store id for vendor
-      const { data: store, error: storeError } = await supabase
-        .from('stores')
-        .select('id')
-        .eq('vendor_id', profile.id)
-        .single();
-
-      if (storeError) {
-        if (storeError.code === 'PGRST116') {
-          setProducts([]);
-          return;
-        }
-        throw storeError;
-      }
-
-      // 2. Fetch products for that store
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('store_id', store.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching vendor products:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+    if (data) setProducts(data);
+    setLoading(false);
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -58,38 +37,18 @@ export default function MyProductsScreen() {
     fetchProducts();
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-      setProducts(products.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    }
-  };
-
   const handleDelete = (id: string) => {
-    Alert.alert('Eliminar producto', '¿Estás seguro de que deseas eliminar este producto?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const { error } = await supabase.from('products').delete().eq('id', id);
-            if (error) throw error;
-            setProducts(products.filter((p) => p.id !== id));
-            Alert.alert('Éxito', 'Producto eliminado');
-          } catch (error: any) {
-            Alert.alert('Error', error.message || 'Error al eliminar');
-          }
-        },
-      },
-    ]);
+    Alert.alert(
+      'Eliminar Material',
+      '¿Estás seguro? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => {
+          await supabase.from('products').delete().eq('id', id);
+          fetchProducts();
+        }}
+      ]
+    );
   };
 
   const formatPrice = (price: number) => {
@@ -101,61 +60,70 @@ export default function MyProductsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.id}
-        className="px-4 py-4"
-        renderItem={({ item }) => (
-          <View className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex-row items-center mb-3 ${!item.is_active ? 'opacity-50' : ''}`}>
-            <Image
-              source={{ uri: item.image_url || 'https://via.placeholder.com/150' }}
-              className="w-16 h-16 rounded-lg mr-4"
-            />
-            <View className="flex-1">
-              <Text className="font-bold text-gray-800" numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text className="text-blue-600 font-semibold">{formatPrice(item.price)}</Text>
-              <Text className="text-gray-500 text-xs">Stock: {item.stock}</Text>
-            </View>
-            <View className="flex-row space-x-2">
-              <TouchableOpacity
-                onPress={() => toggleActive(item.id, item.is_active)}
-                className={`p-2 rounded-full ${item.is_active ? 'bg-gray-100' : 'bg-orange-100'}`}
-              >
-                {item.is_active ? <Eye size={20} color="#64748b" /> : <EyeOff size={20} color="#f97316" />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => router.push(`/(vendor_tabs)/add-product?id=${item.id}`)}
-                className="p-2 rounded-full bg-blue-50"
-              >
-                <Edit2 size={20} color="#2563eb" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDelete(item.id)}
-                className="p-2 rounded-full bg-red-50"
-              >
-                <Trash2 size={20} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
+    <View className="flex-1 bg-vendorBackground">
+      {/* Header Industrial */}
+      <View 
+        style={{ paddingTop: insets.top + 10 }}
+        className="bg-vendorSecondary px-6 pb-6 shadow-md border-b-2 border-vendorPrimary"
+      >
+        <View className="flex-row justify-between items-center">
+          <View>
+            <Text className="text-white font-black text-2xl uppercase tracking-tighter">Mi Inventario</Text>
+            <Text className="text-blue-300 font-black uppercase text-[10px] tracking-widest mt-1">Control de Stock</Text>
           </View>
-        )}
-        ListEmptyComponent={
-          <View className="py-20 items-center">
-            <Text className="text-gray-400">Aún no tienes productos registrados.</Text>
-            <TouchableOpacity
-              onPress={() => router.push('/(vendor_tabs)/add-product')}
-              className="mt-4 bg-blue-600 px-6 py-2 rounded-full"
-            >
-              <Text className="text-white font-bold">Agregar mi primer producto</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
-        }
-      />
+          <TouchableOpacity 
+            onPress={() => router.push('/(vendor_tabs)/add-product')}
+            className="bg-vendorPrimary p-3 rounded-ferretero shadow-lg shadow-blue-500/30"
+          >
+            <Plus size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator color="#1D4ED8" className="mt-20" />
+      ) : (
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id}
+          className="px-4 pt-4"
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1D4ED8" />}
+          renderItem={({ item }) => (
+            <View className={`bg-white p-3 rounded-ferretero mb-2 border border-gray-200 flex-row items-center shadow-sm ${!item.is_active ? 'opacity-60' : ''}`}>
+              <Image 
+                source={{ uri: item.image_url || 'https://via.placeholder.com/100' }}
+                className="w-16 h-16 rounded-ferretero border border-gray-100"
+                resizeMode="cover"
+              />
+              <View className="ml-4 flex-1">
+                <Text className="text-vendorSecondary font-black text-sm uppercase tracking-tight" numberOfLines={1}>{item.name}</Text>
+                <View className="flex-row items-center mt-1">
+                  <Text className="text-vendorPrimary font-black text-sm">{formatPrice(item.price)}</Text>
+                  <View className={`ml-3 px-2 py-0.5 rounded-ferretero ${item.stock < 10 ? 'bg-red-100' : 'bg-gray-100'}`}>
+                    <Text className={`text-[9px] font-black uppercase ${item.stock < 10 ? 'text-red-600' : 'text-gray-500'}`}>
+                      Stock: {item.stock} {item.stock < 10 ? '¡CRÍTICO!' : ''}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              <View className="flex-row items-center">
+                <TouchableOpacity onPress={() => router.push(`/(vendor_tabs)/add-product?id=${item.id}`)} className="p-2 mr-1">
+                  <Edit2 size={18} color="#1D4ED8" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDelete(item.id)} className="p-2">
+                  <Trash2 size={18} color="#EF4444" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View className="py-20 items-center">
+              <Package size={48} color="#cbd5e1" />
+              <Text className="text-gray-400 mt-4 font-black uppercase text-xs">Catálogo vacío</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }

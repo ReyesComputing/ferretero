@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Ferretero",
+    "slug": "ferretero",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "app",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -18,23 +18,27 @@
       "bundleIdentifier": "com.ferretero.app"
     },
     "android": {
-      "package": "com.ferretero.app",
+      "package": "com.reyescomputing.ferretero",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.reyescomputing.app"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
@@ -42,9 +46,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "d300bc08-c6fc-43fc-9f7e-58f4ecd61e18"
+        "projectId": "75b83582-08d3-4cec-b096-9e82afcd76c3"
       }
     },
-    "owner": "jeffrey652"
+    "owner": "reyescomputing"
   }
 }

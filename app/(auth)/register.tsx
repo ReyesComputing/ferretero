@@ -1,153 +1,127 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { supabase } from '../../lib/supabase';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Profile, UserRole } from '../../types/database';
+import { useRouter } from 'expo-router';
+import { User, Truck, ChevronLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState<UserRole>('buyer');
+  const [role, setRole] = useState<'buyer' | 'vendor'>('buyer');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const setProfile = useAuthStore((state) => state.setProfile);
+  const insets = useSafeAreaInsets();
 
   const handleRegister = async () => {
     if (!email || !password || !name) {
-      Alert.alert('Error', 'Por favor llena todos los campos');
+      Alert.alert('Datos incompletos', 'Por favor llena todos los campos obligatorios');
+      return;
+    }
+    setLoading(true);
+    
+    const { data: { session }, error: signUpError } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: { data: { name, role } }
+    });
+
+    if (signUpError) {
+      Alert.alert('Error', signUpError.message);
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email,
-            name,
-            role,
-          })
-          .select('*')
-          .single();
-
-        if (profileError) throw profileError;
-
-        setProfile(profile as Profile);
-
-        if (profile.role === 'buyer') {
-          router.replace('/(buyer_tabs)');
-        } else {
-          router.replace('/(vendor_tabs)/dashboard');
-        }
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al registrarse');
-    } finally {
-      setLoading(false);
-    }
+    // El trigger handle_new_user debería crear el perfil automáticamente
+    router.replace('/');
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-gray-50"
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      className="flex-1 bg-background"
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 py-12">
-        <View className="flex-1 justify-center">
-          <Text className="text-4xl font-bold text-blue-600 text-center mb-4">ListoShop</Text>
-          <Text className="text-2xl font-semibold text-gray-800 mb-6 text-center">Crear cuenta</Text>
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top }}
+        className="px-8"
+      >
+        <TouchableOpacity onPress={() => router.back()} className="mt-4 mb-6 flex-row items-center">
+          <ChevronLeft size={20} color="#FF6600" />
+          <Text className="text-primary font-black uppercase text-xs ml-1 tracking-widest">Volver</Text>
+        </TouchableOpacity>
 
-          <View className="space-y-4">
-            <View>
-              <Text className="text-gray-600 mb-2">Nombre Completo</Text>
-              <TextInput
-                className="bg-white border border-gray-200 p-4 rounded-xl"
-                placeholder="Juan Pérez"
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
+        <Text className="text-4xl font-black text-secondary uppercase tracking-tighter mb-2">Crear Cuenta</Text>
+        <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mb-10">Únete a la red de suministros</Text>
 
-            <View>
-              <Text className="text-gray-600 mb-2">Correo Electrónico</Text>
-              <TextInput
-                className="bg-white border border-gray-200 p-4 rounded-xl"
-                placeholder="tu@email.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
+        <View className="space-y-5">
+          {/* Selector de Rol Industrial */}
+          <View className="mb-6">
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-3 ml-1">Tipo de Usuario</Text>
+            <View className="flex-row space-x-4">
+              <TouchableOpacity 
+                onPress={() => setRole('buyer')}
+                className={`flex-1 p-4 rounded-ferretero border-2 items-center ${role === 'buyer' ? 'border-primary bg-primary/5' : 'border-gray-200 bg-white'}`}
+              >
+                <User size={24} color={role === 'buyer' ? '#FF6600' : '#94a3b8'} />
+                <Text className={`font-black uppercase text-[10px] mt-2 ${role === 'buyer' ? 'text-primary' : 'text-gray-400'}`}>Comprador</Text>
+              </TouchableOpacity>
 
-            <View>
-              <Text className="text-gray-600 mb-2">Contraseña</Text>
-              <TextInput
-                className="bg-white border border-gray-200 p-4 rounded-xl"
-                placeholder="********"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <View>
-              <Text className="text-gray-600 mb-2">Tipo de cuenta</Text>
-              <View className="flex-row space-x-4 mb-4">
-                <TouchableOpacity
-                  onPress={() => setRole('buyer')}
-                  className={`flex-1 p-4 rounded-xl items-center border ${
-                    role === 'buyer' ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <Text className={`font-bold ${role === 'buyer' ? 'text-white' : 'text-gray-600'}`}>
-                    Comprador
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setRole('vendor')}
-                  className={`flex-1 p-4 rounded-xl items-center border ${
-                    role === 'vendor' ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-200'
-                  }`}
-                >
-                  <Text className={`font-bold ${role === 'vendor' ? 'text-white' : 'text-gray-600'}`}>
-                    Vendedor
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              onPress={handleRegister}
-              disabled={loading}
-              className={`bg-blue-600 py-4 rounded-xl items-center mt-4 ${loading ? 'opacity-50' : ''}`}
-            >
-              <Text className="text-white font-bold text-lg">
-                {loading ? 'Registrando...' : 'Registrarse'}
-              </Text>
-            </TouchableOpacity>
-
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600">¿Ya tienes cuenta? </Text>
-              <Link href="/(auth)/login" asChild>
-                <TouchableOpacity>
-                  <Text className="text-blue-600 font-bold">Inicia Sesión</Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity 
+                onPress={() => setRole('vendor')}
+                className={`flex-1 p-4 rounded-ferretero border-2 items-center ${role === 'vendor' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 bg-white'}`}
+              >
+                <Truck size={24} color={role === 'vendor' ? '#1D4ED8' : '#94a3b8'} />
+                <Text className={`font-black uppercase text-[10px] mt-2 ${role === 'vendor' ? 'text-blue-600' : 'text-gray-400'}`}>Vendedor</Text>
+              </TouchableOpacity>
             </View>
           </View>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Nombre Completo</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+              placeholder="Ej: Juan Pérez"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Correo Electrónico</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+              placeholder="usuario@obra.com"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+          </View>
+
+          <View>
+            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Contraseña</Text>
+            <TextInput
+              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+              placeholder="Mínimo 6 caracteres"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
+
+          <TouchableOpacity 
+            onPress={handleRegister}
+            disabled={loading}
+            className={`h-[64px] rounded-ferretero items-center justify-center shadow-xl mt-6 ${role === 'buyer' ? 'bg-primary shadow-orange-500/30' : 'bg-blue-600 shadow-blue-500/30'}`}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-black text-lg uppercase tracking-tighter">Registrarme en Ferretero</Text>
+            )}
+          </TouchableOpacity>
         </View>
+        <View className="py-10" />
       </ScrollView>
     </KeyboardAvoidingView>
   );

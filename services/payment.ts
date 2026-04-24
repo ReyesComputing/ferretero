@@ -1,45 +1,59 @@
-/**
- * Simulated payment service for Wompi / ePayco integration
- */
+import { supabase } from '../lib/supabase';
 
-export interface PaymentResult {
-  success: boolean;
-  transactionId?: string;
-  error?: string;
+interface PurchaseData {
+  buyer_id: string;
+  items: any[];
+  total: number;
+  address: string;
+  method: 'pse' | 'transfer';
 }
 
-export const simulatePayment = async (amount: number): Promise<PaymentResult> => {
-  console.log(`Simulating payment for $${amount} COP...`);
+/**
+ * Procesa la compra completa: Crea el pedido y prepara la transacción
+ */
+export const processPurchase = async (data: PurchaseData) => {
+  try {
+    // 1. Crear la cabecera del pedido
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        buyer_id: data.buyer_id,
+        total_amount: data.total,
+        status: 'pending',
+        payment_method: data.method,
+        delivery_address: data.address,
+      })
+      .select()
+      .single();
 
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+    if (orderError) throw orderError;
 
-  // 95% success rate simulation
-  const isSuccess = Math.random() > 0.05;
+    // 2. Insertar los ítems del pedido
+    const orderItems = data.items.map(item => ({
+      order_id: order.id,
+      product_id: item.id,
+      quantity: item.quantity,
+      unit_price: item.price
+    }));
 
-  if (isSuccess) {
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
+
+    // 3. Simulación de obtención de link de pago (PSE)
+    // Aquí es donde se conectaría con la API de Wompi/PayU en el futuro
+    const paymentUrl = `https://checkout.pasarela.com/pay?orderId=${order.id}&amount=${data.total}`;
+
     return {
       success: true,
-      transactionId: `TX-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      orderId: order.id,
+      paymentUrl
     };
-  } else {
-    return {
-      success: false,
-      error: 'La transacción fue rechazada por el banco emisor.',
-    };
+
+  } catch (error: any) {
+    console.error('Error en processPurchase:', error.message);
+    throw error;
   }
-};
-
-/**
- * Empty functions for future real Wompi / ePayco integration
- */
-
-export const initWompi = (publicKey: string) => {
-  // TODO: Initialize Wompi SDK when ready
-  console.log('Wompi initialized with key:', publicKey);
-};
-
-export const initEPayco = (publicKey: string) => {
-  // TODO: Initialize ePayco SDK when ready
-  console.log('ePayco initialized with key:', publicKey);
 };

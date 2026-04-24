@@ -1,49 +1,55 @@
-import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Search, ShoppingCart, User } from 'lucide-react-native';
+import { Home, ShoppingCart, ClipboardList, User } from 'lucide-react-native';
 
 export default function BuyerLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2563eb', // blue-600
-        tabBarInactiveTintColor: '#64748b', // slate-500
-        headerShown: true,
+        headerShown: false,
+        tabBarActiveTintColor: '#FF6600',
+        tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
-          borderTopWidth: 1,
-          borderTopColor: '#f1f5f9',
-          height: 60,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 2,
+          borderTopColor: '#F1F5F9',
+          height: 64,
           paddingBottom: 10,
+          paddingTop: 10,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '900',
+          textTransform: 'uppercase',
+          letterSpacing: 0.5,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-          headerTitle: 'ListoShop Cali',
+          title: 'Tienda',
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="search"
+        name="orders"
         options={{
-          title: 'Buscar',
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+          title: 'Pedidos',
+          tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'Carrito',
-          tabBarIcon: ({ color, size }) => <ShoppingCart size={size} color={color} />,
+          tabBarIcon: ({ color }) => <ShoppingCart size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Mi Perfil',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
         }}
       />
     </Tabs>
