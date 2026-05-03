@@ -13,18 +13,8 @@ export interface Profile {
   created_at: string;
 }
 
-export interface Store {
-  id: string;
-  vendor_id: string;
-  name: string;
-  description?: string;
-  logo_url?: string;
-  created_at: string;
-}
-
 export interface Product {
   id: string;
-  store_id: string;
   vendor_id: string;
   name: string;
   brand?: string;

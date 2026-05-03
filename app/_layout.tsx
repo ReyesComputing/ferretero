@@ -6,30 +6,38 @@ import { useAuthStore } from '../store/useAuthStore';
 import { supabase } from '../lib/supabase';
 
 export default function RootLayout() {
-  const { setSession, setProfile } = useAuthStore();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) fetchProfile(session.user.id);
-    });
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) fetchProfile(session.user.id);
-      else setProfile(null);
-    });
-  }, []);
+  const { setSession, setProfile, setLoading } = useAuthStore();
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    
-    if (data) setProfile(data);
+    setProfile(data ?? null);
   };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <SafeAreaProvider>
