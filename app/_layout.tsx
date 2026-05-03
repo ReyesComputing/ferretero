@@ -1,3 +1,4 @@
+import '../global.css';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,11 +10,27 @@ export default function RootLayout() {
   const { setSession, setProfile, setLoading } = useAuthStore();
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    let { data } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
+
+    // Fallback: si el trigger no creó el perfil, lo creamos aquí
+    if (!data && user) {
+      const { data: created } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: user.email ?? '',
+          name: user.user_metadata?.name ?? 'Usuario',
+          role: user.user_metadata?.role ?? 'buyer',
+        })
+        .select()
+        .single();
+      data = created;
+    }
     setProfile(data ?? null);
   };
 
