@@ -17,9 +17,10 @@ export default function RootLayout() {
       .eq('id', userId)
       .single();
 
-    // Fallback: si el trigger no creó el perfil, lo creamos aquí
+    // Fallback: si el trigger no creó el perfil, lo creamos desde el cliente
+    // Requiere política RLS: INSERT WITH CHECK (auth.uid() = id)
     if (!data && user) {
-      const { data: created } = await supabase
+      const { data: created, error: insertError } = await supabase
         .from('profiles')
         .insert({
           id: userId,
@@ -29,7 +30,7 @@ export default function RootLayout() {
         })
         .select()
         .single();
-      data = created;
+      if (!insertError) data = created;
     }
     setProfile(data ?? null);
   };
