@@ -57,10 +57,29 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 5. Productos
-CREATE TABLE public.products (
+-- 5. Tiendas
+CREATE TABLE public.stores (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   vendor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  logo_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLS para Tiendas
+ALTER TABLE public.stores ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Stores are viewable by everyone" ON public.stores
+  FOR SELECT USING (true);
+
+CREATE POLICY "Vendors can manage their own store" ON public.stores
+  FOR ALL USING (auth.uid() = vendor_id);
+
+-- 6. Productos
+CREATE TABLE public.products (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  store_id UUID REFERENCES public.stores(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   brand TEXT,
   description TEXT,
@@ -80,9 +99,14 @@ CREATE POLICY "Products are viewable by everyone" ON public.products
   FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Vendors can manage their own products" ON public.products
-  FOR ALL USING (auth.uid() = vendor_id);
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_id AND s.vendor_id = auth.uid()
+    )
+  );
 
--- 6. Cotizaciones
+-- 7. Cotizaciones
 CREATE TABLE public.quotations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   buyer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -93,7 +117,7 @@ CREATE TABLE public.quotations (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 7. Ítems de la Cotización
+-- 8. Ítems de la Cotización
 CREATE TABLE public.quotation_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   quotation_id UUID REFERENCES public.quotations(id) ON DELETE CASCADE,
@@ -116,8 +140,9 @@ CREATE POLICY "Vendors can see related quotations" ON public.quotations
     EXISTS (
       SELECT 1 FROM public.quotation_items qi
       JOIN public.products p ON qi.product_id = p.id
+      JOIN public.stores s ON p.store_id = s.id
       WHERE qi.quotation_id = public.quotations.id 
-      AND p.vendor_id = auth.uid()
+      AND s.vendor_id = auth.uid()
     )
   );
 
@@ -130,7 +155,7 @@ CREATE POLICY "Quotation items visibility" ON public.quotation_items
     )
   );
 
--- 8. Pedidos (Orders)
+-- 9. Pedidos (Orders)
 CREATE TABLE public.orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   buyer_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
@@ -145,7 +170,7 @@ CREATE TABLE public.orders (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 9. Ítems del Pedido
+-- 10. Ítems del Pedido
 CREATE TABLE public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -166,7 +191,8 @@ CREATE POLICY "Vendors can see related orders" ON public.orders
     EXISTS (
       SELECT 1 FROM public.order_items oi
       JOIN public.products p ON oi.product_id = p.id
-      WHERE oi.order_id = public.orders.id AND p.vendor_id = auth.uid()
+      JOIN public.stores s ON p.store_id = s.id
+      WHERE oi.order_id = public.orders.id AND s.vendor_id = auth.uid()
     )
   );
 
@@ -178,7 +204,7 @@ CREATE POLICY "Order items visibility" ON public.order_items
     )
   );
 
--- 10. Categorías
+-- 11. Categorías
 CREATE TABLE public.categories (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT UNIQUE NOT NULL,
@@ -190,7 +216,7 @@ INSERT INTO public.categories (name) VALUES
 ('Construcción'), ('Herramientas'), ('Pinturas'), ('Eléctricos'), ('Plomería')
 ON CONFLICT (name) DO NOTHING;
 
--- 11. Reseñas (Reviews)
+-- 12. Reseñas (Reviews)
 CREATE TABLE public.reviews (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -212,7 +238,7 @@ CREATE POLICY "Anyone can see reviews" ON public.reviews
 CREATE POLICY "Buyers can create reviews" ON public.reviews
   FOR INSERT WITH CHECK (auth.uid() = buyer_id);
 
--- 12. Documentos (PDFs generados)
+-- 13. Documentos (PDFs generados)
 CREATE TABLE public.documents (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   owner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,

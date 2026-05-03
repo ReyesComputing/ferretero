@@ -13,16 +13,25 @@ export interface Profile {
   created_at: string;
 }
 
-export interface Product {
+export interface Store {
   id: string;
   vendor_id: string;
+  name: string;
+  description?: string;
+  logo_url?: string;
+  created_at: string;
+}
+
+export interface Product {
+  id: string;
+  store_id: string;
   name: string;
   brand?: string;
   description?: string;
   price: number;
   stock: number;
   unit_measure?: string;
-  category: 'estructura' | 'acabados' | 'cubiertas' | 'hidrosanitarios' | 'electricos' | 'geotextiles' | 'drenes' | 'otros';
+  category: 'estructura' | 'acabados' | 'cubiertas' | 'hidrosanitarios' | 'electricos' | 'geotextiles' | 'drenes' | 'otros' | 'herramientas' | 'materiales' | 'pintura' | 'seguridad';
   image_url?: string;
   is_active: boolean;
   created_at: string;
@@ -31,8 +40,10 @@ export interface Product {
 export interface Quotation {
   id: string;
   buyer_id: string;
+  customer_nit?: string;
+  delivery_address?: string;
+  billing_email?: string;
   total_amount: number;
-  expires_at: string;
   created_at: string;
 }
 
@@ -58,10 +69,13 @@ export interface Order {
   id: string;
   buyer_id: string;
   total_amount: number;
-  status: 'pending' | 'paid' | 'shipped' | 'delivered';
+  status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  payment_method?: 'pse' | 'transfer' | 'cash';
+  payment_id?: string;
+  cus_code?: string;
   payment_evidence_url?: string;
+  delivery_address?: string;
   delivery_evidence_url?: string;
-  delivery_notes?: string;
   created_at: string;
 }
 
