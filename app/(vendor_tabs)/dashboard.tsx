@@ -28,9 +28,9 @@ export default function VendorDashboard() {
           unit_price,
           quantity,
           orders (id, status),
-          products!inner (vendor_id)
+          products!inner (store_id, stores!inner (vendor_id))
         `)
-        .eq('products.vendor_id', profile.id);
+        .eq('products.stores.vendor_id', profile.id);
 
       if (itemError) throw itemError;
 

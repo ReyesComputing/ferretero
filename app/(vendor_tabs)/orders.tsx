@@ -17,8 +17,11 @@ export default function VendorOrders() {
   const fetchOrders = async () => {
     if (!profile) return;
     
-    // Obtenemos los IDs de productos del vendedor para filtrar órdenes
-    const { data: myProducts } = await supabase.from('products').select('id').eq('vendor_id', profile.id);
+    // Obtenemos los IDs de productos del vendedor via store
+    const { data: myProducts } = await supabase
+      .from('products')
+      .select('id, stores!inner(vendor_id)')
+      .eq('stores.vendor_id', profile.id);
     const productIds = myProducts?.map(p => p.id) || [];
 
     if (productIds.length === 0) {

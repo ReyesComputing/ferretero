@@ -93,19 +93,37 @@ export default function AddProduct() {
     }
 
     setLoading(true);
-    const productData = {
-      name: form.name,
-      brand: form.brand,
-      description: form.description,
-      price: parseFloat(form.price),
-      stock: parseInt(form.stock),
-      category: form.category,
-      image_url: form.image_url,
-      vendor_id: profile?.id,
-    };
-
     try {
-      const { error } = id 
+      // Obtener store_id del vendor
+      const { data: store } = await supabase
+        .from('stores')
+        .select('id')
+        .eq('vendor_id', profile?.id)
+        .single();
+
+      if (!store) {
+        // Crear tienda si no existe
+        const { data: newStore, error: storeError } = await supabase
+          .from('stores')
+          .insert({ vendor_id: profile?.id, name: profile?.name || 'Mi Tienda' })
+          .select('id')
+          .single();
+        if (storeError) throw storeError;
+        store.id = newStore?.id;
+      }
+
+      const productData = {
+        name: form.name,
+        brand: form.brand,
+        description: form.description,
+        price: parseFloat(form.price),
+        stock: parseInt(form.stock),
+        category: form.category,
+        image_url: form.image_url,
+        store_id: store.id,
+      };
+
+      const { error } = id
         ? await supabase.from('products').update(productData).eq('id', id)
         : await supabase.from('products').insert(productData);
 

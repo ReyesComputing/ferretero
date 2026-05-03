@@ -19,8 +19,8 @@ export default function MyProducts() {
     if (!profile) return;
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .eq('vendor_id', profile.id)
+      .select('*, stores!inner(vendor_id)')
+      .eq('stores.vendor_id', profile.id)
       .order('created_at', { ascending: false });
 
     if (data) setProducts(data);
