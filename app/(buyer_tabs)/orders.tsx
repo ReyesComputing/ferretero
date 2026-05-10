@@ -58,8 +58,8 @@ export default function MyOrders() {
         style={{ paddingTop: insets.top + 10 }}
         className="bg-secondary px-6 pb-8 shadow-md"
       >
-        <Text className="text-2xl font-black text-white uppercase tracking-tighter">Seguimiento de Pedidos</Text>
-        <Text className="text-primary text-[10px] font-black uppercase tracking-widest mt-1">Control de mis materiales</Text>
+        <Text className="text-2xl font-bold text-white tracking-tighter">Seguimiento de Pedidos</Text>
+        <Text className="text-primary text-[10px] font-bold uppercase tracking-widest mt-1">Control de mis materiales</Text>
       </View>
 
       {loading ? (
@@ -94,9 +94,10 @@ export default function MyOrders() {
             </View>
           )}
           ListEmptyComponent={
-            <View className="py-20 items-center">
-              <ShoppingBag size={64} color="#cbd5e1" />
-              <Text className="text-gray-400 mt-6 text-lg font-black uppercase tracking-tighter">Sin pedidos registrados</Text>
+            <View className="py-20 flex-1 justify-center items-center px-6">
+              <ShoppingBag size={80} color="#CBD5E1" className="mb-6" />
+              <Text className="text-textPrimary font-bold text-lg mb-2">No tienes pedidos</Text>
+              <Text className="text-textSecondary font-normal text-sm text-center">Cuando realices compras, el seguimiento aparecerá aquí.</Text>
             </View>
           }
         />

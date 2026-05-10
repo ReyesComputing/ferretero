@@ -2,18 +2,21 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator, Image } from 'react-native';
 import { useCartStore } from '../../store/useCartStore';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Trash2, CreditCard, MapPin, Building, Mail, ShoppingCart, Minus, Plus, FileText, Upload } from 'lucide-react-native';
+import { Trash2, CreditCard, MapPin, Building, Mail, ShoppingCart, Minus, Plus, FileText, Upload, Landmark } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '../../lib/supabase';
 import { decode } from 'base-64';
 import * as FileSystem from 'expo-file-system';
+import { useRouter } from 'expo-router';
 
 export default function CartScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { items, total, removeItem, updateQuantity, clearCart } = useCartStore();
   const { profile } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'pse' | 'transfer'>('pse');
   const [billingInfo, setBillingInfo] = useState({
     nit: profile?.nit || '',
     address: profile?.address || '',
@@ -71,22 +74,48 @@ export default function CartScreen() {
     }
 
     setLoading(true);
-    // Simulación de proceso de pago PSE
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('Pedido Procesado', 'Tu pedido ha sido enviado al vendedor y el pago PSE fue exitoso.');
+    try {
+      const cartItems = items.map(i => ({ product_id: i.id, quantity: i.quantity }));
+      
+      // Llamamos a la base de datos real
+      const { data, error } = await supabase.rpc('ferretero_checkout', {
+        p_buyer_id: profile?.id,
+        p_items: cartItems,
+        p_shipping_address: billingInfo.address,
+        p_payment_method: paymentMethod
+      });
+
+      if (error) throw error;
+      
+      const orderId = data.order_id;
+      
       clearCart();
-    }, 2000);
+
+      if (paymentMethod === 'transfer') {
+        Alert.alert(
+          'Pedido Creado', 
+          'Tu pedido ha sido guardado. Por favor, realiza la transferencia a la cuenta de la ferretería y sube el comprobante en el detalle de la orden.',
+          [
+            { text: 'Ver Pedido', onPress: () => router.push(`/order/${orderId}`) }
+          ]
+        );
+      } else {
+        Alert.alert('Pedido Procesado', 'Tu pedido ha sido enviado al vendedor y el pago PSE está en proceso (simulación).');
+      }
+      
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Error procesando el pedido.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (items.length === 0) {
     return (
       <View className="flex-1 justify-center items-center bg-background px-8">
-        <View className="bg-gray-100 p-8 rounded-full mb-6">
-          <ShoppingCart size={64} color="#94a3b8" />
-        </View>
-        <Text className="text-2xl font-black text-secondary uppercase tracking-tighter mb-2">Tu Carrito está vacío</Text>
-        <Text className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">Añade materiales para tu obra</Text>
+        <ShoppingCart size={80} color="#CBD5E1" className="mb-6" />
+        <Text className="text-2xl font-bold text-textPrimary mb-2">Tu carrito está vacío</Text>
+        <Text className="text-textSecondary font-normal text-sm text-center">Añade materiales y herramientas para comenzar tu proyecto.</Text>
       </View>
     );
   }
@@ -174,7 +203,29 @@ export default function CartScreen() {
           </View>
         </View>
 
-        {/* Resumen y Pago */}
+        {/* Selector de Método de Pago */}
+        <View className="bg-white p-6 rounded-ferretero border border-gray-200 shadow-sm mb-8">
+          <Text className="text-gray-400 font-black uppercase text-[10px] tracking-widest mb-4">Método de Pago</Text>
+          <View className="flex-row gap-4">
+            <TouchableOpacity 
+              onPress={() => setPaymentMethod('pse')}
+              className={`flex-1 p-4 rounded-ferretero items-center border-2 ${paymentMethod === 'pse' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}
+            >
+              <CreditCard size={24} color={paymentMethod === 'pse' ? '#FF6600' : '#94a3b8'} />
+              <Text className={`font-black uppercase text-[10px] mt-2 tracking-tighter ${paymentMethod === 'pse' ? 'text-primary' : 'text-gray-400'}`}>PSE en línea</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setPaymentMethod('transfer')}
+              className={`flex-1 p-4 rounded-ferretero items-center border-2 ${paymentMethod === 'transfer' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}
+            >
+              <Landmark size={24} color={paymentMethod === 'transfer' ? '#FF6600' : '#94a3b8'} />
+              <Text className={`font-black uppercase text-[10px] mt-2 tracking-tighter text-center ${paymentMethod === 'transfer' ? 'text-primary' : 'text-gray-400'}`}>Transferencia Bancaria</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Resumen y Botón de Acción */}
         <View className="bg-white p-6 rounded-ferretero border border-gray-200 shadow-sm">
           <View className="flex-row justify-between items-center mb-6">
             <Text className="text-gray-400 font-black uppercase text-xs">Total del Pedido</Text>
@@ -184,12 +235,14 @@ export default function CartScreen() {
           <TouchableOpacity 
             onPress={handleCheckout}
             disabled={loading}
-            className="bg-primary h-[64px] rounded-ferretero flex-row justify-center items-center shadow-xl shadow-orange-500/30"
+            className="bg-primary active:bg-primaryDark h-[64px] rounded-button flex-row justify-center items-center shadow-md"
           >
             {loading ? <ActivityIndicator color="white" /> : (
               <>
-                <CreditCard size={24} color="white" />
-                <Text className="text-white font-black text-lg ml-4 uppercase tracking-tighter">Pagar con PSE</Text>
+                {paymentMethod === 'transfer' ? <Landmark size={24} color="white" /> : <CreditCard size={24} color="white" />}
+                <Text className="text-white font-bold text-lg ml-4">
+                  {paymentMethod === 'transfer' ? 'Pagar con Transferencia' : 'Pagar con PSE'}
+                </Text>
               </>
             )}
           </TouchableOpacity>

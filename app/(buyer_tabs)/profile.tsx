@@ -41,39 +41,39 @@ export default function ProfileScreen() {
         <Text className="text-3xl font-black text-secondary uppercase tracking-tighter mb-8">Mi Perfil</Text>
 
         {/* Tarjeta de Identidad Industrial */}
-        <View className="bg-secondary p-6 rounded-ferretero shadow-lg mb-8">
+        <View className="bg-primary p-6 rounded-xl shadow-lg mb-8">
           <View className="flex-row items-center mb-4">
-            <View className="bg-primary p-4 rounded-ferretero">
-              <User size={32} color="white" />
+            <View className="bg-white/20 p-4 rounded-xl">
+              <User size={32} color="#0F172A" />
             </View>
             <View className="ml-4">
-              <Text className="text-white font-black text-xl uppercase tracking-tighter">{profile?.name}</Text>
-              <Text className="text-blue-300 font-bold uppercase text-[10px] tracking-widest">{profile?.role}</Text>
+              <Text className="text-secondary font-bold text-xl uppercase tracking-tighter">{profile?.name}</Text>
+              <Text className="text-secondary/80 font-bold uppercase text-[10px] tracking-widest">{profile?.role}</Text>
             </View>
           </View>
-          <View className="flex-row items-center bg-white/5 p-3 rounded-ferretero">
-            <Mail size={16} color="rgba(255,255,255,0.5)" />
-            <Text className="text-white/60 ml-3 font-bold text-xs">{profile?.email}</Text>
+          <View className="flex-row items-center bg-white/10 p-3 rounded-xl">
+            <Mail size={16} color="#0F172A" />
+            <Text className="text-secondary ml-3 font-bold text-xs">{profile?.email}</Text>
           </View>
         </View>
 
         {/* Formulario de Datos */}
         <View className="space-y-6">
           <View>
-            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Nombre Público</Text>
+            <Text className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-2 ml-1">Nombre Público</Text>
             <TextInput
-              className="bg-white p-4 rounded-ferretero border border-gray-200 font-bold text-secondary"
+              className="bg-white p-4 rounded-xl border border-gray-200 font-normal text-textPrimary"
               value={form.name}
               onChangeText={(t) => setForm({...form, name: t})}
             />
           </View>
 
           <View>
-            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">NIT / Cédula Fiscal</Text>
-            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+            <Text className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-2 ml-1">NIT / Cédula Fiscal</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-xl border border-gray-200">
               <Building size={18} color="#94a3b8" />
               <TextInput 
-                className="flex-1 ml-3 font-bold text-secondary" 
+                className="flex-1 ml-3 font-normal text-textPrimary" 
                 value={form.nit}
                 onChangeText={(t) => setForm({...form, nit: t})}
               />
@@ -81,11 +81,11 @@ export default function ProfileScreen() {
           </View>
 
           <View>
-            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Dirección de Obra</Text>
-            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+            <Text className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-2 ml-1">Dirección de Obra</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-xl border border-gray-200">
               <MapPin size={18} color="#94a3b8" />
               <TextInput 
-                className="flex-1 ml-3 font-bold text-secondary" 
+                className="flex-1 ml-3 font-normal text-textPrimary" 
                 value={form.address}
                 onChangeText={(t) => setForm({...form, address: t})}
               />
@@ -93,11 +93,11 @@ export default function ProfileScreen() {
           </View>
 
           <View>
-            <Text className="text-secondary font-black uppercase text-[10px] tracking-widest mb-2 ml-1">Teléfono de Contacto</Text>
-            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-200">
+            <Text className="text-secondary font-bold uppercase text-[10px] tracking-widest mb-2 ml-1">Teléfono de Contacto</Text>
+            <View className="bg-white flex-row items-center px-4 h-[52px] rounded-xl border border-gray-200">
               <Phone size={18} color="#94a3b8" />
               <TextInput 
-                className="flex-1 ml-3 font-bold text-secondary" 
+                className="flex-1 ml-3 font-normal text-textPrimary" 
                 value={form.phone}
                 onChangeText={(t) => setForm({...form, phone: t})}
               />
@@ -107,22 +107,22 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={handleUpdate}
             disabled={loading}
-            className="bg-primary h-[64px] rounded-ferretero items-center justify-center flex-row shadow-xl shadow-orange-500/30 mt-4"
+            className="bg-primary active:bg-primaryDark h-[64px] rounded-button items-center justify-center flex-row shadow-md mt-4"
           >
             {loading ? <ActivityIndicator color="white" /> : (
               <>
                 <Save size={20} color="white" />
-                <Text className="text-white font-black text-lg ml-4 uppercase tracking-tighter">Guardar Cambios</Text>
+                <Text className="text-white font-bold text-lg ml-4">Guardar Cambios</Text>
               </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => signOut()}
-            className="bg-white border-2 border-red-500 h-[54px] rounded-ferretero items-center justify-center flex-row mt-4"
+            className="bg-white border border-gray-200 active:bg-gray-50 h-[54px] rounded-button items-center justify-center flex-row mt-4"
           >
             <LogOut size={20} color="#EF4444" />
-            <Text className="text-red-500 font-black text-sm ml-4 uppercase tracking-tighter">Cerrar Sesión</Text>
+            <Text className="text-red-500 font-bold text-sm ml-4">Cerrar Sesión</Text>
           </TouchableOpacity>
         </View>
 

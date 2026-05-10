@@ -6,9 +6,13 @@ module.exports = {
     extend: {
       colors: {
         // Paleta Comprador (Industrial Orange)
-        primary: "#FF6600",
-        secondary: "#1E293B",
-        background: "#F8FAFC",
+        primary: "#F97316", // Orange-500
+        primaryDark: "#EA580C", // Orange-600
+        secondary: "#0F172A", // Slate-900
+        background: "#F8FAFC", // Slate-50
+        surface: "#FFFFFF",
+        textPrimary: "#1E293B", // Slate-800
+        textSecondary: "#64748B", // Slate-500
         
         // Paleta Vendedor (Industrial Blue)
         vendorPrimary: "#1D4ED8",
@@ -21,7 +25,8 @@ module.exports = {
         danger: "#EF4444",
       },
       borderRadius: {
-        'ferretero': '4px', // El sello de diseño industrial
+        'ferretero': '12px',
+        'button': '8px',
       },
     },
   },

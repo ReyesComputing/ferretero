@@ -6,21 +6,23 @@ export default function BuyerLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FF6600',
+        tabBarActiveTintColor: '#F97316',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 2,
-          borderTopColor: '#F1F5F9',
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
           height: 64,
           paddingBottom: 10,
           paddingTop: 10,
         },
         tabBarLabelStyle: {
           fontSize: 10,
-          fontWeight: '900',
-          textTransform: 'uppercase',
-          letterSpacing: 0.5,
+          fontWeight: 'bold',
         },
       }}
     >

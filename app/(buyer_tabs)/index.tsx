@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { Product } from '../../types/database';
 import { ProductCard } from '../../components/ProductCard';
 import { CategoryCarousel } from '../../components/CategoryCarousel';
-import { Search, Hammer } from 'lucide-react-native';
+import { Search, Hammer, PackageSearch } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeFeed() {
@@ -53,16 +53,16 @@ export default function HomeFeed() {
         className="bg-secondary px-6 pb-8 shadow-md"
       >
         <View className="flex-row items-center mb-5">
-          <View className="bg-primary p-2 rounded-ferretero mr-3">
+          <View className="bg-primary p-2 rounded-button mr-3">
             <Hammer size={20} color="white" />
           </View>
-          <Text className="text-3xl font-black text-white uppercase tracking-tighter">Ferretero</Text>
+          <Text className="text-3xl font-bold text-white tracking-tighter">Ferretero</Text>
         </View>
 
-        <View className="bg-white flex-row items-center px-4 h-[52px] rounded-ferretero border border-gray-300">
+        <View className="bg-surface flex-row items-center px-4 h-[52px] rounded-xl border border-gray-200">
           <Search size={20} color="#94a3b8" />
           <TextInput
-            className="flex-1 ml-3 font-bold text-secondary"
+            className="flex-1 ml-3 font-normal text-textPrimary"
             placeholder="Buscar materiales, herramientas..."
             placeholderTextColor="#94a3b8"
             value={searchQuery}
@@ -92,8 +92,10 @@ export default function HomeFeed() {
           loading ? (
             <ActivityIndicator size="large" color="#FF6600" className="mt-20" />
           ) : (
-            <View className="py-20 items-center">
-              <Text className="text-gray-400 font-black uppercase tracking-widest text-[10px]">No se encontraron materiales</Text>
+            <View className="py-20 flex-1 justify-center items-center px-6">
+              <PackageSearch size={64} color="#CBD5E1" className="mb-4" />
+              <Text className="text-textPrimary font-bold text-lg mb-2">No encontramos materiales</Text>
+              <Text className="text-textSecondary font-normal text-sm text-center">Ajusta tu búsqueda o selecciona otra categoría de nuestro catálogo.</Text>
             </View>
           )
         }
