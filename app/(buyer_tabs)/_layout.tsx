@@ -1,7 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Home, ShoppingCart, ClipboardList, User } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform } from 'react-native';
 
 export default function BuyerLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -16,8 +20,8 @@ export default function BuyerLayout() {
           shadowOffset: { width: 0, height: -4 },
           shadowOpacity: 0.05,
           shadowRadius: 10,
-          height: 64,
-          paddingBottom: 10,
+          height: Platform.OS === 'android' ? 70 : 64 + insets.bottom,
+          paddingBottom: Platform.OS === 'android' ? 14 : (insets.bottom > 0 ? insets.bottom : 10),
           paddingTop: 10,
         },
         tabBarLabelStyle: {
